@@ -376,7 +376,7 @@ class PanelGenerator(QMainWindow):
         freq_layout = QHBoxLayout()
         freq_label = QLabel('时间频次:')
         self.custom_freq_combo = QComboBox()
-        self.custom_freq_combo.addItems(['年', '季度', '月', '周', '日'])
+        self.custom_freq_combo.addItems(['年', '��度', '月', '周', '日'])
         freq_layout.addWidget(freq_label)
         freq_layout.addWidget(self.custom_freq_combo)
         freq_layout.addStretch()
@@ -423,7 +423,7 @@ class PanelGenerator(QMainWindow):
         self.custom_start_date.setDisplayFormat('yyyy-MM-dd')
         self.custom_start_date.setDate(QDate.currentDate().addYears(-1))
         
-        end_label = QLabel('结束时间:')
+        end_label = QLabel('结时间:')
         self.custom_end_date = QDateEdit()
         self.custom_end_date.setDisplayFormat('yyyy-MM-dd')
         self.custom_end_date.setDate(QDate.currentDate())
@@ -797,15 +797,24 @@ class PanelGenerator(QMainWindow):
     
     def show_update_dialog(self, new_version, changelog):
         """显示更新对话框"""
-        reply = QMessageBox.question(
-            self,
-            '发现新版本',
-            f'发现新版本 {new_version}\n\n更新内容：\n{changelog}\n\n是否现在更新？',
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        msg = QMessageBox(self)
+        msg.setWindowTitle('发现新版本')
+        msg.setText(f'发现新版本 {new_version}\n\n更新内容：\n{changelog}')
+        msg.setStandardButtons(
+            QMessageBox.StandardButton.Yes | 
+            QMessageBox.StandardButton.No |
+            QMessageBox.StandardButton.SaveAll
         )
+        msg.button(QMessageBox.StandardButton.Yes).setText('更新并替换')
+        msg.button(QMessageBox.StandardButton.SaveAll).setText('保留旧版本并更新')
+        msg.button(QMessageBox.StandardButton.No).setText('取消')
+        
+        reply = msg.exec()
         
         if reply == QMessageBox.StandardButton.Yes:
-            self.start_update()
+            self.start_update(keep_old=False)
+        elif reply == QMessageBox.StandardButton.SaveAll:
+            self.start_update(keep_old=True)
     
     def show_update_error(self, error):
         """显示更新错误"""
@@ -815,23 +824,21 @@ class PanelGenerator(QMainWindow):
             f'检查更新时出错：{error}'
         )
     
-    def start_update(self):
+    def start_update(self, keep_old=False):
         """开始更新"""
-        # 创建进度对话框
         self.progress_dialog = QProgressDialog('正在下载更新...', '取消', 0, 100, self)
         self.progress_dialog.setWindowTitle('更新进度')
         self.progress_dialog.setAutoClose(True)
         self.progress_dialog.setAutoReset(True)
         
-        # 创建更新器
         self.updater = Updater(
-            "https://github.com/twy93007/Pannel-maker/releases/latest/download/经济数据面板生成器.exe"
+            "https://github.com/twy93007/Pannel-maker/releases/latest/download/经济数据面板生成器.exe",
+            keep_old=keep_old
         )
         self.updater.progress.connect(self.progress_dialog.setValue)
         self.updater.finished.connect(self.on_update_finished)
         self.updater.error.connect(self.on_update_error)
         
-        # 开始更新
         self.updater.start()
         self.progress_dialog.show()
     
@@ -842,7 +849,8 @@ class PanelGenerator(QMainWindow):
             '更新完成',
             '更新已下载完成，程序将重启以完成更新。'
         )
-        self.close()
+        # 确保完全退出
+        QApplication.quit()
     
     def on_update_error(self, error):
         """更新错误"""

@@ -13,7 +13,7 @@ class UpdateChecker(QThread):
     update_available = pyqtSignal(str, str)  # 版本号, 更新日志
     error_occurred = pyqtSignal(str)
     
-    CURRENT_VERSION = "1.1.0"  # 更新当前版本号
+    CURRENT_VERSION = "1.1.0"  # 当前版本号
     VERSION_URL = "https://raw.githubusercontent.com/twy93007/Pannel-maker/main/version.json"
     
     def run(self):
@@ -76,11 +76,11 @@ class Updater(QThread):
                 
                 with open(update_script, 'w') as f:
                     f.write('#!/bin/bash\n')
-                    f.write('sleep 1\n')
-                    f.write(f'rm -rf "{current_app}"\n')
-                    f.write(f'mv "{temp_file}" "{current_app}"\n')
-                    f.write(f'open "{current_app}"\n')
-                    f.write('rm "$0"\n')
+                    f.write('sleep 2\n')  # 等待原程序退出
+                    f.write(f'rm -rf "{current_app}"\n')  # 删除旧版本
+                    f.write(f'mv "{temp_file}" "{current_app}"\n')  # 移动新版本
+                    f.write(f'open "{current_app}"\n')  # 启动新版本
+                    f.write('rm "$0"\n')  # 删除更新脚本
                 
                 os.chmod(update_script, 0o755)
                 subprocess.Popen(['bash', update_script])
@@ -89,15 +89,15 @@ class Updater(QThread):
                 batch_file = os.path.join(temp_dir, "update.bat")
                 current_exe = sys.executable
                 
-                with open(batch_file, 'w') as f:
+                with open(batch_file, 'w', encoding='utf-8') as f:
                     f.write('@echo off\n')
-                    f.write('timeout /t 1 /nobreak\n')
-                    f.write(f'del "{current_exe}"\n')
-                    f.write(f'move "{temp_file}" "{current_exe}"\n')
-                    f.write(f'start "" "{current_exe}"\n')
-                    f.write('del "%~f0"\n')
+                    f.write('timeout /t 2 /nobreak > nul\n')  # 等待原程序退出
+                    f.write(f'del "{current_exe}"\n')  # 删除旧版本
+                    f.write(f'move "{temp_file}" "{current_exe}"\n')  # 移动新版本
+                    f.write(f'start "" "{current_exe}"\n')  # 启动新版本
+                    f.write('del "%~f0"\n')  # 删除更新脚本
                 
-                subprocess.Popen(['cmd', '/c', batch_file])
+                subprocess.Popen(['cmd', '/c', batch_file], shell=True)
             
             self.finished.emit()
             
