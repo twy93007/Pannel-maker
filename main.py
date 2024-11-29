@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QTabWidget,
                             QVBoxLayout, QHBoxLayout, QLabel, QComboBox, 
                             QPushButton, QFileDialog, QLineEdit, QTextEdit,
                             QDateEdit, QProgressBar, QRadioButton, QButtonGroup,
-                            QProgressDialog, QMessageBox)
+                            QProgressDialog, QMessageBox, QStatusBar, QToolBar, QAction)
 from PyQt6.QtCore import Qt, QDate, QTimer
 from PyQt6.QtGui import QIcon
 import pandas as pd
@@ -91,6 +91,24 @@ class PanelGenerator(QMainWindow):
         
         # 启动更新检查
         self.update_checker.start()
+        
+        # 添加状态栏显示处理进度
+        self.statusBar = QStatusBar()
+        self.setStatusBar(self.statusBar)
+        
+        # 添加菜单栏
+        menubar = self.menuBar()
+        file_menu = menubar.addMenu('文件')
+        help_menu = menubar.addMenu('帮助')
+        
+        # 添加工具栏
+        toolbar = QToolBar()
+        self.addToolBar(toolbar)
+        
+        # 添加主题切换功能
+        settings_menu = menubar.addMenu('设置')
+        theme_action = QAction('切换主题', self)
+        settings_menu.addAction(theme_action)
     
     def load_config(self):
         """加载配置文件"""
