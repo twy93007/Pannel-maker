@@ -1,5 +1,5 @@
 {
-    "version": "1.1.1",
+    "version": "1.1.2",
     "download_url": "https://github.com/twy93007/Pannel-maker/releases/latest/download/经济数据面板生成器.exe",
-    "changelog": "V1.1.1 更新内容：\n- 完善面板生成功能\n- 添加数据文件选择功能\n- 添加年份和地区选择\n- 添加数据预览功能\n- 添加数据导出功能\n- 修复更新功能的问题\n- 优化用户界面"
+    "changelog": "V1.1.2 更新内容：\n- 优化界面布局\n- 移除不必要的菜单栏\n- 修复时间范围选择问题\n- 改进时间频次切换逻辑\n- 优化数据生成效率"
 } 

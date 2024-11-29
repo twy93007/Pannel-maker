@@ -8,7 +8,7 @@ from updater import UpdateChecker, Updater
 from panel_generator import PanelTab
 
 class MainWindow(QMainWindow):
-    VERSION = "1.1.1"  # 更新版本号
+    VERSION = "1.1.2"  # 更新版本号
     
     def __init__(self):
         super().__init__()
@@ -20,31 +20,12 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(main_widget)
         layout = QVBoxLayout(main_widget)
         
-        # 创建菜单栏
-        menubar = self.menuBar()
-        file_menu = menubar.addMenu('文件')
-        help_menu = menubar.addMenu('帮助')
-        settings_menu = menubar.addMenu('设置')
-        
-        # 添加菜单项
-        theme_action = QAction('切换主题', self)
-        theme_action.triggered.connect(self.toggle_theme)
-        settings_menu.addAction(theme_action)
-        
-        # 创建工具栏
-        toolbar = QToolBar()
-        self.addToolBar(toolbar)
-        
         # 创建标签页
         tabs = QTabWidget()
         tabs.addTab(self.create_province_tab(), "省份面板")
         tabs.addTab(self.create_city_tab(), "城市面板")
         tabs.addTab(self.create_custom_tab(), "自定义面板")
         layout.addWidget(tabs)
-        
-        # 添加状态栏
-        self.statusBar = QStatusBar()
-        self.setStatusBar(self.statusBar)
         
         # 添加版权信息
         copyright_label = QLabel("© 2024 经济数据面板生成器. 保留所有权利。")
