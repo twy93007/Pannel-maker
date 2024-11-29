@@ -2,7 +2,8 @@ import sys
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QTabWidget, 
                             QVBoxLayout, QHBoxLayout, QLabel, QComboBox, 
                             QPushButton, QFileDialog, QLineEdit, QTextEdit,
-                            QDateEdit, QProgressBar, QRadioButton, QButtonGroup)
+                            QDateEdit, QProgressBar, QRadioButton, QButtonGroup,
+                            QProgressDialog, QMessageBox)
 from PyQt6.QtCore import Qt, QDate, QTimer
 from PyQt6.QtGui import QIcon
 import pandas as pd
@@ -12,6 +13,7 @@ from panel_generator import DataPanelGenerator
 import json
 from pathlib import Path
 from styles import MAIN_STYLE
+from updater import UpdateChecker, Updater
 
 def resource_path(relative_path):
     """ 获取资源文件的绝对路径 """
@@ -66,7 +68,15 @@ class PanelGenerator(QMainWindow):
         # 应用样式表
         app = QApplication.instance()
         app.setStyleSheet(MAIN_STYLE)
-
+        
+        # 创建更新检查器
+        self.update_checker = UpdateChecker()
+        self.update_checker.update_available.connect(self.show_update_dialog)
+        self.update_checker.error_occurred.connect(self.show_update_error)
+        
+        # 启动更新检查
+        self.update_checker.start()
+    
     def load_config(self):
         """加载配置文件"""
         config_path = Path.home() / '.panel_generator_config.json'
@@ -751,6 +761,63 @@ class PanelGenerator(QMainWindow):
             
         except Exception as e:
             self.custom_preview.setText(f'错误：{str(e)}')
+    
+    def show_update_dialog(self, new_version, changelog):
+        """显示更新对话框"""
+        reply = QMessageBox.question(
+            self,
+            '发现新版本',
+            f'发现新版本 {new_version}\n\n更新内容：\n{changelog}\n\n是否现在更新？',
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            self.start_update()
+    
+    def show_update_error(self, error):
+        """显示更新错误"""
+        QMessageBox.warning(
+            self,
+            '更新检查失败',
+            f'检查更新时出错：{error}'
+        )
+    
+    def start_update(self):
+        """开始更新"""
+        # 创建进度对话框
+        self.progress_dialog = QProgressDialog('正在下载更新...', '取消', 0, 100, self)
+        self.progress_dialog.setWindowTitle('更新进度')
+        self.progress_dialog.setAutoClose(True)
+        self.progress_dialog.setAutoReset(True)
+        
+        # 创建更新器
+        self.updater = Updater(
+            "https://github.com/twy93007/Pannel-maker/releases/latest/download/经济数据面板生成器.exe"
+        )
+        self.updater.progress.connect(self.progress_dialog.setValue)
+        self.updater.finished.connect(self.on_update_finished)
+        self.updater.error.connect(self.on_update_error)
+        
+        # 开始更新
+        self.updater.start()
+        self.progress_dialog.show()
+    
+    def on_update_finished(self):
+        """更新完成"""
+        QMessageBox.information(
+            self,
+            '更新完成',
+            '更新已下载完成，程序将重启以完成更新。'
+        )
+        self.close()
+    
+    def on_update_error(self, error):
+        """更新错误"""
+        QMessageBox.warning(
+            self,
+            '更新失败',
+            f'更新过程中出错：{error}'
+        )
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
