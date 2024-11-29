@@ -1,9 +1,9 @@
 import sys
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
-                            QTabWidget, QLabel, QStatusBar, QMenuBar, QToolBar)
-from PyQt6.QtGui import QAction  # 从 QtGui 导入 QAction
+                            QTabWidget, QLabel, QStatusBar, QMenuBar, QToolBar,
+                            QMessageBox, QProgressDialog)
+from PyQt6.QtGui import QAction
 from PyQt6.QtCore import Qt
-from panel_generator import PanelGenerator
 from updater import UpdateChecker, Updater
 
 class MainWindow(QMainWindow):
