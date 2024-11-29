@@ -6,13 +6,14 @@ from PyQt6.QtWidgets import QMessageBox
 from PyQt6.QtCore import QThread, pyqtSignal
 import tempfile
 import subprocess
+from packaging import version
 
 class UpdateChecker(QThread):
     """更新检查线程"""
     update_available = pyqtSignal(str, str)  # 版本号, 更新日志
     error_occurred = pyqtSignal(str)
     
-    CURRENT_VERSION = "1.0.1"  # 更新当前版本号
+    CURRENT_VERSION = "1.0.1"  # 当前版本号
     VERSION_URL = "https://raw.githubusercontent.com/twy93007/Pannel-maker/main/version.json"
     
     def run(self):
@@ -21,7 +22,11 @@ class UpdateChecker(QThread):
             response = requests.get(self.VERSION_URL, timeout=5)
             version_info = response.json()
             
-            if version_info["version"] > self.CURRENT_VERSION:
+            # 使用 packaging.version 进行版本比较
+            current = version.parse(self.CURRENT_VERSION)
+            latest = version.parse(version_info["version"])
+            
+            if latest > current:
                 self.update_available.emit(
                     version_info["version"],
                     version_info["changelog"]
