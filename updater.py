@@ -13,7 +13,7 @@ class UpdateChecker(QThread):
     update_available = pyqtSignal(str, str)  # 版本号, 更新日志
     error_occurred = pyqtSignal(str)
     
-    CURRENT_VERSION = "1.1.2"  # 更新版本号
+    CURRENT_VERSION = "1.1.2"  # 当前版本号
     VERSION_URL = "https://raw.githubusercontent.com/twy93007/Pannel-maker/main/version.json"
     
     def run(self):
@@ -52,10 +52,7 @@ class Updater(QThread):
             
             # 创建临时文件
             temp_dir = tempfile.gettempdir()
-            if sys.platform == 'darwin':
-                temp_file = os.path.join(temp_dir, "经济数据面板生成器_new.app")
-            else:
-                temp_file = os.path.join(temp_dir, "经济数据面板生成器_new.exe")
+            temp_file = os.path.join(temp_dir, "update_temp.exe")
             
             # 下载文件
             block_size = 1024
@@ -68,36 +65,29 @@ class Updater(QThread):
                     progress = int((downloaded / total_size) * 100)
                     self.progress.emit(progress)
             
-            # 根据平台选择更新方式
-            if sys.platform == 'darwin':
-                # macOS 更新脚本
-                update_script = os.path.join(temp_dir, "update.sh")
-                current_app = os.path.dirname(os.path.dirname(sys.executable))
-                
-                with open(update_script, 'w') as f:
-                    f.write('#!/bin/bash\n')
-                    f.write('sleep 2\n')  # 等待原程序退出
-                    f.write(f'rm -rf "{current_app}"\n')  # 删除旧版本
-                    f.write(f'mv "{temp_file}" "{current_app}"\n')  # 移动新版本
-                    f.write(f'open "{current_app}"\n')  # 启动新版本
-                    f.write('rm "$0"\n')  # 删除更新脚本
-                
-                os.chmod(update_script, 0o755)
-                subprocess.Popen(['bash', update_script])
-            else:
-                # Windows 更新批处理
-                batch_file = os.path.join(temp_dir, "update.bat")
-                current_exe = sys.executable
-                
-                with open(batch_file, 'w', encoding='utf-8') as f:
-                    f.write('@echo off\n')
-                    f.write('timeout /t 2 /nobreak > nul\n')  # 等待原程序退出
-                    f.write(f'del "{current_exe}"\n')  # 删除旧版本
-                    f.write(f'move "{temp_file}" "{current_exe}"\n')  # 移动新版本
-                    f.write(f'start "" "{current_exe}"\n')  # 启动新版本
-                    f.write('del "%~f0"\n')  # 删除更新脚本
-                
-                subprocess.Popen(['cmd', '/c', batch_file], shell=True)
+            # 创建更新批处理文件
+            batch_file = os.path.join(temp_dir, "update.bat")
+            current_exe = sys.executable
+            
+            # 使用短路径名避免中文路径问题
+            if hasattr(os, 'path'):
+                try:
+                    import win32api
+                    current_exe = win32api.GetShortPathName(current_exe)
+                    temp_file = win32api.GetShortPathName(temp_file)
+                except ImportError:
+                    pass
+            
+            with open(batch_file, 'w', encoding='utf-8') as f:
+                f.write('@echo off\n')
+                f.write('timeout /t 2 /nobreak > nul\n')  # 等待原程序退出
+                f.write(f'del "{current_exe}"\n')
+                f.write(f'move /Y "{temp_file}" "{current_exe}"\n')
+                f.write(f'start "" "{current_exe}"\n')
+                f.write('del "%~f0"\n')
+            
+            # 执行更新批处理
+            subprocess.Popen(['cmd', '/c', batch_file], shell=True, creationflags=subprocess.CREATE_NO_WINDOW)
             
             self.finished.emit()
             
