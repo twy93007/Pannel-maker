@@ -20,6 +20,7 @@ def build_app():
         '--hidden-import=openpyxl',
         '--hidden-import=requests',
         '--hidden-import=packaging',
+        '--hidden-import=win32api',
     ]
     
     PyInstaller.__main__.run(params)
