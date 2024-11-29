@@ -12,7 +12,7 @@ class UpdateChecker(QThread):
     update_available = pyqtSignal(str, str)  # 版本号, 更新日志
     error_occurred = pyqtSignal(str)
     
-    CURRENT_VERSION = "1.0.0"  # 当前版本号
+    CURRENT_VERSION = "1.0.1"  # 更新当前版本号
     VERSION_URL = "https://raw.githubusercontent.com/twy93007/Pannel-maker/main/version.json"
     
     def run(self):

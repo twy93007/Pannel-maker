@@ -24,9 +24,11 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 class PanelGenerator(QMainWindow):
+    VERSION = "V1.0.1"  # 版本号
+    
     def __init__(self):
         super().__init__()
-        self.setWindowTitle('经济数据面板生成器')
+        self.setWindowTitle(f'经济数据面板生成器 {self.VERSION}')
         self.setGeometry(100, 100, 800, 600)
         
         # 设置窗口图标
@@ -61,6 +63,19 @@ class PanelGenerator(QMainWindow):
         tabs.addTab(self.create_custom_tab(), '自定义面板')
         
         layout.addWidget(tabs)
+        
+        # 添加版权信息
+        copyright_label = QLabel("© 2024 经济数据面板生成器. 保留所有权利。")
+        copyright_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        copyright_label.setStyleSheet("""
+            QLabel {
+                color: #666666;
+                font-size: 12px;
+                padding: 10px;
+                border-top: 1px solid #dcdde1;
+            }
+        """)
+        layout.addWidget(copyright_label)
         
         # 加载基础数据
         self.load_base_data()

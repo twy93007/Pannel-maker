@@ -21,6 +21,7 @@ def build_exe():
     params = [
         'main.py',  # 主程序文件
         '--name=经济数据面板生成器',  # 生成的exe名称
+        '--version-file=version_info.txt',  # 添加版本信息文件
         '--windowed',  # 不显示控制台窗口
         '--onefile',  # 打包成单个文件
         '--clean',  # 清理临时文件
