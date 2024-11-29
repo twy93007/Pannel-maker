@@ -47,7 +47,10 @@ class Updater(QThread):
             
             # 创建临时文件
             temp_dir = tempfile.gettempdir()
-            temp_file = os.path.join(temp_dir, "经济数据面板生成器_new.exe")
+            if sys.platform == 'darwin':
+                temp_file = os.path.join(temp_dir, "经济数据面板生成器_new.app")
+            else:
+                temp_file = os.path.join(temp_dir, "经济数据面板生成器_new.exe")
             
             # 下载文件
             block_size = 1024
@@ -60,20 +63,37 @@ class Updater(QThread):
                     progress = int((downloaded / total_size) * 100)
                     self.progress.emit(progress)
             
-            # 创建更新批处理文件
-            batch_file = os.path.join(temp_dir, "update.bat")
-            current_exe = sys.executable
+            # 根据平台选择更新方式
+            if sys.platform == 'darwin':
+                # macOS 更新脚本
+                update_script = os.path.join(temp_dir, "update.sh")
+                current_app = os.path.dirname(os.path.dirname(sys.executable))
+                
+                with open(update_script, 'w') as f:
+                    f.write('#!/bin/bash\n')
+                    f.write('sleep 1\n')
+                    f.write(f'rm -rf "{current_app}"\n')
+                    f.write(f'mv "{temp_file}" "{current_app}"\n')
+                    f.write(f'open "{current_app}"\n')
+                    f.write('rm "$0"\n')
+                
+                os.chmod(update_script, 0o755)
+                subprocess.Popen(['bash', update_script])
+            else:
+                # Windows 更新批处理
+                batch_file = os.path.join(temp_dir, "update.bat")
+                current_exe = sys.executable
+                
+                with open(batch_file, 'w') as f:
+                    f.write('@echo off\n')
+                    f.write('timeout /t 1 /nobreak\n')
+                    f.write(f'del "{current_exe}"\n')
+                    f.write(f'move "{temp_file}" "{current_exe}"\n')
+                    f.write(f'start "" "{current_exe}"\n')
+                    f.write('del "%~f0"\n')
+                
+                subprocess.Popen(['cmd', '/c', batch_file])
             
-            with open(batch_file, 'w') as f:
-                f.write('@echo off\n')
-                f.write('timeout /t 1 /nobreak\n')
-                f.write(f'del "{current_exe}"\n')
-                f.write(f'move "{temp_file}" "{current_exe}"\n')
-                f.write(f'start "" "{current_exe}"\n')
-                f.write('del "%~f0"\n')
-            
-            # 执行更新
-            subprocess.Popen(['cmd', '/c', batch_file])
             self.finished.emit()
             
         except Exception as e:

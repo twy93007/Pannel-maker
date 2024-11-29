@@ -8,7 +8,8 @@ def build_exe():
         'main.py',
         'panel_generator.py',
         'styles.py',
-        'icon.png'
+        'updater.py',
+        'icon.ico'
     ]
     
     for file in required_files:
@@ -24,21 +25,23 @@ def build_exe():
         '--onefile',  # 打包成单个文件
         '--clean',  # 清理临时文件
         '--noconfirm',  # 不确认覆盖
-        '--icon=icon.png',  # 程序图标
+        '--icon=icon.ico',  # 程序图标
         
         # 添加数据文件
-        '--add-data=styles.py;.',  # Windows使用分号作为分隔符
+        '--add-data=styles.py;.',
         '--add-data=panel_generator.py;.',
-        '--add-data=icon.png;.',
+        '--add-data=updater.py;.',
+        '--add-data=icon.ico;.',
         
         # 添加必要的依赖
         '--hidden-import=pandas',
         '--hidden-import=openpyxl',
         '--hidden-import=PyQt6',
-        
-        # 优化选项
-        '--noupx',  # 不使用UPX压缩
-        '--disable-windowed-traceback',  # 禁用窗口化错误回溯
+        '--hidden-import=requests',  # 添加 requests 依赖
+        '--hidden-import=urllib3',   # requests 的依赖
+        '--hidden-import=chardet',   # requests 的依赖
+        '--hidden-import=certifi',   # requests 的依赖
+        '--hidden-import=idna',      # requests 的依赖
     ]
 
     print("开始打包...")
