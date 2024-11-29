@@ -4,7 +4,7 @@ import os
 def build_app():
     params = [
         'main.py',
-        '--name=经济数据面板生成器',
+        '--name=EconPanelMaker',
         '--windowed',
         '--onefile',
         '--clean',
@@ -20,7 +20,6 @@ def build_app():
         '--hidden-import=openpyxl',
         '--hidden-import=requests',
         '--hidden-import=packaging',
-        '--hidden-import=win32api',
     ]
     
     PyInstaller.__main__.run(params)
