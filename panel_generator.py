@@ -1,292 +1,174 @@
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
+                            QPushButton, QFileDialog, QComboBox, QSpinBox,
+                            QTableWidget, QTableWidgetItem, QMessageBox)
+from PyQt6.QtCore import Qt
 import pandas as pd
-from datetime import datetime, timedelta
+import os
 
-class DataPanelGenerator:
-    """数据面板生成器类"""
+class PanelTab(QWidget):
+    def __init__(self, panel_type="province"):
+        super().__init__()
+        self.panel_type = panel_type
+        self.data = None
+        self.setup_ui()
+        
+    def setup_ui(self):
+        layout = QVBoxLayout()
+        
+        # 顶部控制区
+        control_layout = QHBoxLayout()
+        
+        # 文件选择
+        self.file_btn = QPushButton("选择数据文件")
+        self.file_btn.clicked.connect(self.select_file)
+        control_layout.addWidget(self.file_btn)
+        
+        # 年份选择
+        year_layout = QHBoxLayout()
+        year_layout.addWidget(QLabel("年份:"))
+        self.year_spin = QSpinBox()
+        self.year_spin.setRange(1990, 2100)
+        self.year_spin.setValue(2024)
+        year_layout.addWidget(self.year_spin)
+        control_layout.addLayout(year_layout)
+        
+        # 地区选择
+        if self.panel_type in ["province", "city"]:
+            region_layout = QHBoxLayout()
+            region_layout.addWidget(QLabel("地区:"))
+            self.region_combo = QComboBox()
+            self.update_region_list()
+            region_layout.addWidget(self.region_combo)
+            control_layout.addLayout(region_layout)
+        
+        # 生成按钮
+        self.generate_btn = QPushButton("生成面板")
+        self.generate_btn.clicked.connect(self.generate_panel)
+        control_layout.addWidget(self.generate_btn)
+        
+        # 导出按钮
+        self.export_btn = QPushButton("导出数据")
+        self.export_btn.clicked.connect(self.export_data)
+        control_layout.addWidget(self.export_btn)
+        
+        layout.addLayout(control_layout)
+        
+        # 数据预览表格
+        self.table = QTableWidget()
+        layout.addWidget(self.table)
+        
+        self.setLayout(layout)
     
-    def __init__(self):
-        """初始化数据面板生成器，加载省份和城市基础数据"""
-        self.province_data = self.load_province_data()
-        self.city_data = self.load_city_data()
-
-    def load_province_data(self):
-        """加载省份数据
-        返回：包含省份全称和简称的字典
-        """
-        provinces = {
-            '北京市': '北京',
-            '天津市': '天津',
-            '河北省': '河北',
-            '山西省': '山西',
-            '内蒙古自治区': '内蒙古',
-            '辽宁省': '辽宁',
-            '吉林省': '吉林',
-            '黑龙江省': '黑龙江',
-            '上海市': '上海',
-            '江苏省': '江苏',
-            '浙江省': '浙江',
-            '安徽省': '安徽',
-            '福建省': '福建',
-            '江西省': '江西',
-            '山东省': '山东',
-            '河南省': '河南',
-            '湖北省': '湖北',
-            '湖南省': '湖南',
-            '广东省': '广东',
-            '广西壮族自治区': '广西',
-            '海南省': '海南',
-            '重庆市': '重庆',
-            '四川省': '四川',
-            '贵州省': '贵州',
-            '云南省': '云南',
-            '西藏自治区': '西藏',
-            '陕西省': '陕西',
-            '甘肃省': '甘肃',
-            '青海省': '青海',
-            '宁夏回族自治区': '宁夏',
-            '新疆维吾尔自治区': '新疆',
-            '香港特别行政区': '香港',
-            '澳门特别行政区': '澳门',
-            '台湾省': '台湾'
-        }
-        return provinces
-
-    def load_city_data(self):
-        """加载城市数据
-        返回：包含省份和对应城市列表的字典
-        """
-        cities = {
-            '安徽省': ['安庆市', '蚌埠市', '亳州市', '巢湖市', '池州市', '滁州市', '阜阳市', 
-                     '合肥市', '淮北市', '淮南市', '黄山市', '六安市', '马鞍山市', '宿州市', 
-                     '铜陵市', '芜湖市', '宣城市'],
-            '北京市': ['北京市'],
-            '福建省': ['福州市', '龙岩市', '南平市', '宁德市', '莆田市', '泉州市', '三明市', 
-                     '厦门市', '漳州市'],
-            '甘肃省': ['白银市', '定西市', '甘南藏族自治州', '嘉峪关市', '金昌市', '酒泉市', 
-                     '兰州市', '临夏回族自治州', '陇南市', '平凉市', '庆阳市', '天水市', 
-                     '武威市', '张掖市'],
-            '广东省': ['潮州市', '东莞市', '佛山市', '广州市', '河源市', '惠州市', '江门市', 
-                     '揭阳市', '茂名市', '梅州市', '清远市', '汕头市', '汕尾市', '韶关市', 
-                     '深圳市', '阳江市', '云浮市', '湛江市', '肇庆市', '中山市', '珠海市'],
-            '广西壮族自治区': ['百色市', '北海市', '崇左市', '防城港市', '贵港市', '桂林市', 
-                           '河池市', '贺州市', '来宾市', '柳州市', '南宁市', '钦州市', 
-                           '梧州市', '玉林市'],
-            '贵州省': ['安顺市', '毕节市', '贵阳市', '六盘水市', '黔东南苗族侗族自治州', 
-                     '黔南布依族苗族自治州', '黔西南布依族苗族自治州', '铜仁市', '遵义市'],
-            '海南省': ['海口市', '三亚市', '省直辖县级行政单位'],
-            '河北省': ['保定市', '沧州市', '承德市', '邯郸市', '衡水市', '廊坊市', '秦皇岛市', 
-                     '石家庄市', '唐山市', '邢台市', '张家口市'],
-            '河南省': ['安阳市', '鹤壁市', '焦作市', '开封市', '洛阳市', '漯河市', '南阳市', 
-                     '平顶山市', '濮阳市', '三门峡市', '商丘市', '新乡市', '信阳市', '许昌市', 
-                     '郑州市', '周口市', '驻马店市'],
-            '黑龙江省': ['大庆市', '大兴安岭地区', '哈尔滨市', '鹤岗市', '黑河市', '鸡西市', 
-                       '佳木斯市', '牡丹江市', '七台河市', '齐齐哈尔市', '双鸭山市', '绥化市', 
-                       '伊春市'],
-            '湖北省': ['鄂州市', '恩施土家族苗族自治州', '黄冈市', '黄石市', '荆门市', '荆州市', 
-                       '省直辖行政单位', '十堰市', '随州市', '武汉市', '咸宁市', '襄阳市', 
-                       '孝感市', '宜昌市'],
-            '湖南省': ['常德市', '郴州市', '衡阳市', '怀化市', '娄底市', '邵阳市', '湘潭市', 
-                       '湘西土家族苗族自治州', '益阳市', '永州市', '岳阳市', '张家界市', '长沙市', 
-                       '株洲市'],
-            '吉林省': ['白城市', '白山市', '吉林市', '辽源市', '四平市', '松原市', '通化市', 
-                       '延边朝鲜族自治州', '长春市'],
-            '江苏省': ['常州市', '淮安市', '连云港市', '南京市', '南通市', '苏州市', '宿迁市', 
-                       '泰州市', '无锡市', '徐州市', '盐城市', '扬州市', '镇江市'],
-            '江西省': ['抚州市', '赣州市', '吉安市', '景德镇市', '九江市', '南昌市', '萍乡市', 
-                       '上饶市', '新余市', '宜春市', '鹰潭市'],
-            '辽宁省': ['鞍山市', '本溪市', '朝阳市', '大连市', '丹东市', '抚顺市', '阜新市', 
-                       '葫芦岛市', '锦州市', '辽阳市', '盘锦市', '沈阳市', '铁岭市', '营口市'],
-            '内蒙古自治区': ['阿拉善盟', '巴彦淖尔市', '包头市', '赤峰市', '鄂尔多斯市', 
-                             '呼和浩特市', '呼伦贝尔市', '通辽市', '乌海市', '乌兰察布市', 
-                             '锡林郭勒盟', '兴安盟'],
-            '宁夏回族自治区': ['固原市', '石嘴山市', '吴忠市', '银川市', '中卫市'],
-            '青海省': ['果洛藏族自治州', '海北藏族自治州', '海东地区', '海南藏族自治州', 
-                       '海西蒙古族藏族自治州', '黄南藏族自治州', '西宁市', '玉树藏族自治州'],
-            '山东省': ['滨州市', '德州市', '东营市', '菏泽市', '济南市', '济宁市', '莱芜市', 
-                       '聊城市', '临沂市', '青岛市', '日照市', '泰安市', '威海市', '潍坊市', 
-                       '烟台市', '枣庄市', '淄博市'],
-            '山西省': ['大同市', '晋城市', '晋中市', '临汾市', '吕梁市', '朔州市', '太原市', 
-                       '忻州市', '阳泉市', '运城市', '长治市'],
-            '陕西省': ['安康市', '宝鸡市', '汉中市', '商洛市', '铜川市', '渭南市', '西安市', 
-                       '咸阳市', '延安市', '榆林市'],
-            '上海市': ['上海市'],
-            '四川省': ['阿坝藏族羌族自治州', '巴中市', '成都市', '达州市', '德阳市', 
-                       '甘孜藏族自治州', '广安市', '广元市', '乐山市', '凉山彝族自治州', 
-                       '泸州市', '眉山市', '绵阳市', '南充市', '内江市', '攀枝花市', '遂宁市', 
-                       '雅安市', '宜宾市', '资阳市', '自贡市'],
-            '天津市': ['天津市'],
-            '西藏自治区': ['阿里地区', '昌都地区', '拉萨市', '林芝地区', '那曲地区', 
-                             '日喀则地区', '山南地区'],
-            '新疆维吾尔自治区': ['阿克苏地区', '阿勒泰地区', '巴音郭楞蒙古自治州', 
-                                 '博尔塔拉蒙古自治州', '昌吉回族自治州', '哈密地区', '和田地区', 
-                                 '喀什地区', '克拉玛依市', '克孜勒苏柯尔克孜自治州', 
-                                 '省直辖行政单位', '石河子市', '塔城地区', '吐鲁番地区', 
-                                 '乌鲁木齐市', '伊犁哈萨克自治州'],
-            '云南省': ['保山市', '楚雄彝族自治州', '大理白族自治州', '德宏傣族景颇族自治州', 
-                       '迪庆藏族自治州', '红河哈尼族彝族自治州', '昆明市', '丽江市', '临沧市', 
-                       '怒江傈僳族自治州', '普洱市', '曲靖市', '文山壮族苗族自治州', 
-                       '西双版纳傣族自治州', '玉溪市', '昭通市'],
-            '浙江省': ['杭州市', '湖州市', '嘉兴市', '金华市', '丽水市', '宁波市', '衢州市', 
-                       '绍兴市', '台州市', '温州市', '舟山市'],
-            '重庆市': ['重庆市']
-        }
-        return cities
-
-    def generate_time_series(self, start_date, end_date, freq):
-        """生成时间序列
-        
-        参数：
-            start_date: 开始日期
-            end_date: 结束日期
-            freq: 频次（年、季度、月、周、日）
+    def update_region_list(self):
+        """更新地区列表"""
+        if not hasattr(self, 'region_combo'):
+            return
             
-        返回：
-            格式化的时间序列列表
+        if self.panel_type == "province":
+            regions = [
+                "北京", "天津", "河北", "山西", "内蒙古",
+                "辽宁", "吉林", "黑龙江", "上海", "江苏",
+                "浙江", "安徽", "福建", "江西", "山东",
+                "河南", "湖北", "湖南", "广东", "广西",
+                "海南", "重庆", "四川", "贵州", "云南",
+                "西藏", "陕西", "甘肃", "青海", "宁夏",
+                "新疆"
+            ]
+        elif self.panel_type == "city":
+            # 这里可以根据选择的省份动态加载城市列表
+            regions = ["示例城市1", "示例城市2", "示例城市3"]
+        
+        self.region_combo.clear()
+        self.region_combo.addItems(regions)
+    
+    def select_file(self):
+        """选择数据文件"""
+        file_name, _ = QFileDialog.getOpenFileName(
+            self,
+            "选择数据文件",
+            "",
+            "Excel Files (*.xlsx *.xls);;CSV Files (*.csv)"
+        )
+        
+        if file_name:
+            try:
+                if file_name.endswith(('.xlsx', '.xls')):
+                    self.data = pd.read_excel(file_name)
+                else:
+                    self.data = pd.read_csv(file_name)
+                self.update_table()
+                self.file_btn.setText(os.path.basename(file_name))
+            except Exception as e:
+                QMessageBox.warning(self, "错误", f"读取文件失败：{str(e)}")
+    
+    def update_table(self):
+        """更新数据预览表格"""
+        if self.data is None:
+            return
             
-        异常：
-            ValueError: 当时间频次无效时抛出
-        """
-        # 频次映射
-        freq_map = {
-            '年': 'Y',
-            '季度': 'Q',
-            '月': 'M',
-            '周': 'W',
-            '日': 'D'
-        }
+        self.table.setRowCount(len(self.data))
+        self.table.setColumnCount(len(self.data.columns))
+        self.table.setHorizontalHeaderLabels(self.data.columns)
         
-        if freq not in freq_map:
-            raise ValueError(f"无效的时间频次：{freq}")
-        
+        for i in range(len(self.data)):
+            for j in range(len(self.data.columns)):
+                item = QTableWidgetItem(str(self.data.iloc[i, j]))
+                self.table.setItem(i, j, item)
+    
+    def generate_panel(self):
+        """生成面板数据"""
+        if self.data is None:
+            QMessageBox.warning(self, "错误", "请先选择数据文件")
+            return
+            
         try:
-            dates = pd.date_range(start=start_date, end=end_date, freq=freq_map[freq])
+            # 根据面板类型处理数据
+            if self.panel_type == "province":
+                region = self.region_combo.currentText()
+                year = self.year_spin.value()
+                # 处理省份数据
+                filtered_data = self.data[
+                    (self.data['省份'] == region) &
+                    (self.data['年份'] == year)
+                ]
+            elif self.panel_type == "city":
+                region = self.region_combo.currentText()
+                year = self.year_spin.value()
+                # 处理城市数据
+                filtered_data = self.data[
+                    (self.data['城市'] == region) &
+                    (self.data['年份'] == year)
+                ]
+            else:
+                # 处理自定义面板
+                filtered_data = self.data
             
-            if len(dates) == 0:
-                raise ValueError("根据给定的间范围和频次，无法生成有效的时间序列")
-            
-            # 根据不同频次格式化日期
-            if freq == '年':
-                return [d.strftime('%Y') for d in dates]
-            elif freq == '季度':
-                return [f"{d.strftime('%Y')}-Q{d.quarter}" for d in dates]
-            elif freq == '月':
-                return [d.strftime('%Y-%m') for d in dates]
-            elif freq == '周':
-                return [f"{d.strftime('%Y')}-W{d.strftime('%W')}" for d in dates]
-            else:  # 日
-                return [d.strftime('%Y-%m-%d') for d in dates]
-                
-        except Exception as e:
-            raise ValueError(f"生成时间序列时出错：{str(e)}")
-
-    def generate_province_panel(self, start_date, end_date, freq):
-        """生成省份面板
-        
-        参数：
-            start_date: 开始日期
-            end_date: 结束日期
-            freq: 频次
-            
-        返回：
-            包含省份面板数据的DataFrame
-            
-        异常：
-            ValueError: 当参数无效或生成过程出错时抛出
-        """
-        try:
-            # 生成时间序列
-            time_series = self.generate_time_series(start_date, end_date, freq)
-            rows = []
-            
-            # 生成面板数据
-            for time in time_series:
-                for province, abbr in self.province_data.items():
-                    rows.append({
-                        '省份': province,
-                        '简称': abbr,
-                        '时间': time
-                    })
-            
-            if not rows:
-                raise ValueError("未能生成任何数据")
-                
-            return pd.DataFrame(rows)
+            # 更新表格显示
+            self.data = filtered_data
+            self.update_table()
             
         except Exception as e:
-            raise ValueError(f"生成省份面板时出错：{str(e)}")
-
-    def generate_city_panel(self, start_date, end_date, freq):
-        """生成城市面板
+            QMessageBox.warning(self, "错误", f"生成面板失败：{str(e)}")
+    
+    def export_data(self):
+        """导出数据"""
+        if self.data is None:
+            QMessageBox.warning(self, "错误", "没有可导出的数据")
+            return
+            
+        file_name, _ = QFileDialog.getSaveFileName(
+            self,
+            "导出数据",
+            "",
+            "Excel Files (*.xlsx);;CSV Files (*.csv)"
+        )
         
-        参数：
-            start_date: 开始日期
-            end_date: 结束日期
-            freq: 频次
-            
-        返回：
-            包含城市面板数据的DataFrame
-            
-        异常：
-            ValueError: 当参数无效或生成过程出错时抛出
-        """
-        try:
-            # 生成时间序列
-            time_series = self.generate_time_series(start_date, end_date, freq)
-            rows = []
-            
-            # 生成面板数据
-            for time in time_series:
-                for province, cities in self.city_data.items():
-                    for city in cities:
-                        rows.append({
-                            '省份': province,
-                            '城市': city,
-                            '时间': time
-                        })
-            
-            if not rows:
-                raise ValueError("未能生成任何数据")
-                
-            return pd.DataFrame(rows)
-            
-        except Exception as e:
-            raise ValueError(f"生成城市面板时出错：{str(e)}")
-
-    def generate_custom_panel(self, data, start_date, end_date, freq):
-        """生成自定义面板
-        
-        参数：
-            data: 输入的DataFrame数据
-            start_date: 开始日期
-            end_date: 结束日期
-            freq: 频次
-            
-        返回：
-            包含自定义面板数据的DataFrame
-            
-        异常：
-            ValueError: 当参数无效或生成过程出错时抛出
-        """
-        try:
-            # 验证输入数据
-            if data is None or len(data) == 0:
-                raise ValueError("输入数据为空")
-            
-            # 生成时间序列
-            time_series = self.generate_time_series(start_date, end_date, freq)
-            rows = []
-            
-            # 生成面板数据
-            for time in time_series:
-                for _, row in data.iterrows():
-                    new_row = row.to_dict()
-                    new_row['时间'] = time
-                    rows.append(new_row)
-            
-            if not rows:
-                raise ValueError("未能生成任何数据")
-                
-            return pd.DataFrame(rows)
-            
-        except Exception as e:
-            raise ValueError(f"生成自定义面板时出错：{str(e)}") 
+        if file_name:
+            try:
+                if file_name.endswith('.xlsx'):
+                    self.data.to_excel(file_name, index=False)
+                else:
+                    self.data.to_csv(file_name, index=False)
+                QMessageBox.information(self, "成功", "数据导出成功")
+            except Exception as e:
+                QMessageBox.warning(self, "错误", f"导出数据失败：{str(e)}") 

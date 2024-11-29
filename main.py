@@ -5,9 +5,10 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
 from PyQt6.QtGui import QAction
 from PyQt6.QtCore import Qt
 from updater import UpdateChecker, Updater
+from panel_generator import PanelTab
 
 class MainWindow(QMainWindow):
-    VERSION = "1.1.0"  # 版本号
+    VERSION = "1.1.1"  # 更新版本号
     
     def __init__(self):
         super().__init__()
@@ -68,21 +69,15 @@ class MainWindow(QMainWindow):
     
     def create_province_tab(self):
         """创建省份面板标签页"""
-        widget = QWidget()
-        # 添加省份面板的具体内容
-        return widget
+        return PanelTab(panel_type="province")
     
     def create_city_tab(self):
         """创建城市面板标签页"""
-        widget = QWidget()
-        # 添加城市面板的具体内容
-        return widget
+        return PanelTab(panel_type="city")
     
     def create_custom_tab(self):
         """创建自定义面板标签页"""
-        widget = QWidget()
-        # 添加自定义面板的具体内容
-        return widget
+        return PanelTab(panel_type="custom")
     
     def toggle_theme(self):
         """切换主题"""
