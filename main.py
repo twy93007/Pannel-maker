@@ -28,7 +28,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(tabs)
         
         # 添加版权信息
-        copyright_label = QLabel("© 2024 经济数据面板生成器. 保留所有权利。")
+        copyright_label = QLabel("© 2024 经济数据面板生成器. twy93007 保留所有权利。")
         copyright_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         copyright_label.setStyleSheet("""
             QLabel {
