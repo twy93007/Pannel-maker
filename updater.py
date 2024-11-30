@@ -7,6 +7,7 @@ from PyQt6.QtCore import QThread, pyqtSignal
 import tempfile
 import subprocess
 from packaging import version
+import uuid
 
 class UpdateChecker(QThread):
     """更新检查线程"""
@@ -47,10 +48,13 @@ class Updater(QThread):
             response = requests.get(self.download_url, stream=True)
             total_size = int(response.headers.get('content-length', 0))
             
-            # 使用英文名称的临时文件
+            # 使用UUID生成唯一的临时文件名
             temp_dir = tempfile.gettempdir()
-            temp_file = os.path.join(temp_dir, "EconPanelMaker_new.exe")
+            temp_id = str(uuid.uuid4())
+            temp_file = os.path.join(temp_dir, f"update_{temp_id}.exe")
+            batch_file = os.path.join(temp_dir, f"update_{temp_id}.bat")
             
+            # 下载新版本
             block_size = 1024
             downloaded = 0
             
@@ -61,23 +65,34 @@ class Updater(QThread):
                     progress = int((downloaded / total_size) * 100)
                     self.progress.emit(progress)
             
-            # 创建更新批处理文件
-            batch_file = os.path.join(temp_dir, "update.bat")
-            current_exe = sys.executable
+            # 获取当前程序路径
+            current_exe = os.path.abspath(sys.executable)
             
+            # 创建更新批处理文件
             with open(batch_file, 'w', encoding='utf-8') as f:
                 f.write('@echo off\n')
-                f.write('timeout /t 2 /nobreak > nul\n')
-                f.write(f'del "{current_exe}"\n')
-                f.write(f'move /Y "{temp_file}" "{current_exe}"\n')
+                f.write('ping 127.0.0.1 -n 3 > nul\n')  # 等待3秒
+                f.write(f'if exist "{current_exe}" del /f /q "{current_exe}"\n')
+                f.write(f'if exist "{temp_file}" move /y "{temp_file}" "{current_exe}"\n')
                 f.write(f'start "" "{current_exe}"\n')
                 f.write('del "%~f0"\n')
             
-            subprocess.Popen(['cmd', '/c', batch_file], 
-                           shell=True, 
-                           creationflags=subprocess.CREATE_NO_WINDOW)
+            # 执行更新批处理
+            subprocess.Popen(
+                ['cmd', '/c', batch_file],
+                shell=True,
+                creationflags=subprocess.CREATE_NO_WINDOW | subprocess.DETACHED_PROCESS
+            )
             
             self.finished.emit()
             
         except Exception as e:
-            self.error.emit(str(e)) 
+            self.error.emit(str(e))
+            # 清理临时文件
+            try:
+                if os.path.exists(temp_file):
+                    os.remove(temp_file)
+                if os.path.exists(batch_file):
+                    os.remove(batch_file)
+            except:
+                pass 
