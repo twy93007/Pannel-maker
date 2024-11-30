@@ -8,7 +8,7 @@ from updater import UpdateChecker, Updater
 from panel_generator import PanelTab
 
 class MainWindow(QMainWindow):
-    VERSION = "1.1.3"  # 更新版本号
+    VERSION = "1.1.4"  # 更新版本号
     
     def __init__(self):
         super().__init__()
